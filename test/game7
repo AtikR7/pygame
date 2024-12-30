@@ -1,0 +1,123 @@
+import pygame
+import random
+
+# Initialize Pygame
+pygame.init()
+
+# Screen dimensions
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("Endless Runner Prototype")
+
+# Colors
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+GREEN = (0, 255, 0)
+RED = (255, 0, 0)
+
+# Frame rate
+clock = pygame.time.Clock()
+
+# Player class
+class Player(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.Surface((50, 50))  # Player size
+        self.image.fill(GREEN)
+        self.rect = self.image.get_rect()
+        self.rect.center = (100, SCREEN_HEIGHT - 70)
+        self.velocity = 0
+        self.is_jumping = False
+
+    def update(self):
+        # Move player up if jumping
+        if self.is_jumping:
+            self.velocity -= 1
+            self.rect.y += self.velocity
+            if self.rect.y >= SCREEN_HEIGHT - 70:
+                self.rect.y = SCREEN_HEIGHT - 70
+                self.is_jumping = False
+                self.velocity = 0
+
+    def jump(self):
+        if not self.is_jumping:
+            self.is_jumping = True
+            self.velocity = 10
+
+    def move(self, dx):
+        self.rect.x += dx
+
+
+# Obstacle class
+class Obstacle(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.Surface((50, 50))  # Obstacle size
+        self.image.fill(RED)
+        self.rect = self.image.get_rect()
+        self.rect.x = SCREEN_WIDTH + random.randint(200, 800)
+        self.rect.y = SCREEN_HEIGHT - 70
+
+    def update(self):
+        self.rect.x -= 5
+        if self.rect.x < -50:
+            self.rect.x = SCREEN_WIDTH + random.randint(200, 800)
+            self.rect.y = SCREEN_HEIGHT - 70
+
+
+# Set up sprite groups
+all_sprites = pygame.sprite.Group()
+obstacles = pygame.sprite.Group()
+
+player = Player()
+all_sprites.add(player)
+
+# Main game loop
+running = True
+score = 0
+while running:
+    clock.tick(60)  # 60 FPS
+
+    # Event handling
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                player.jump()
+            elif event.key == pygame.K_LEFT:
+                player.move(-10)
+            elif event.key == pygame.K_RIGHT:
+                player.move(10)
+
+    # Update game logic
+    all_sprites.update()
+    for obstacle in obstacles:
+        obstacle.update()
+
+    # Check collisions
+    if pygame.sprite.spritecollide(player, obstacles, False):
+        running = False  # End the game if player collides with an obstacle
+
+    # Create new obstacles
+    if random.random() < 0.02:
+        new_obstacle = Obstacle()
+        obstacles.add(new_obstacle)
+        all_sprites.add(new_obstacle)
+
+    # Draw everything
+    screen.fill(WHITE)
+    all_sprites.draw(screen)
+
+    # Display score
+    score += 1
+    font = pygame.font.Font(None, 36)
+    score_text = font.render(f"Score: {score}", True, BLACK)
+    screen.blit(score_text, (10, 10))
+
+    # Update the display
+    pygame.display.flip()
+
+# Quit Pygame
+pygame.quit()
